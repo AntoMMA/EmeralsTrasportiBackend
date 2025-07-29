@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.5">
+    <meta name="description" content="Gestione dipendenti e calcolo stipendi">
+    <title>Gestione Aziendale</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-app.js";
+        import { getFirestore, collection, onSnapshot, addDoc, updateDoc, doc, getDoc, setDoc, getDocs, deleteDoc } from "https://www.gstatic.com/firebasejs/9.6.1/firebase-firestore.js";
+
+        // INCOLLA QUI IL TUO CODICE DI CONFIGURAZIONE DI FIREBASE
+        const firebaseConfig = {
+          apiKey: "AIzaSyDGQqIzJq89nQEFS5O6HD23Bact8x6u3_U",
+          authDomain: "gestionale-emerals-trasporti.firebaseapp.com",
+          projectId: "gestionale-emerals-trasporti",
+          storageBucket: "gestionale-emerals-trasporti.firebasestorage.app",
+          messagingSenderId: "502830907301",
+          appId: "1:502830907301:web:5b035012199cf32782324c",
+          measurementId: "G-2PZCXEND6F"
+        };
+
+        // Inizializza Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // Rendi le funzioni di Firebase disponibili globalmente
+        window.db = db;
+        window.collection = collection;
+        window.onSnapshot = onSnapshot;
+        window.addDoc = addDoc;
+        window.updateDoc = updateDoc;
+        window.doc = doc;
+        window.getDoc = getDoc;
+        window.setDoc = setDoc;
+        window.getDocs = getDocs;
+        window.deleteDoc = deleteDoc;
+    </script>
+</head>
+<body>
+
+<div id="logo-container">
+    <a href="#" onclick="window.location.reload()">
+        <img id="logo" src="logo.jpg"/>
+    </a>
+</div>
+
+<div class="container">
+    <div class="main-content">
+        <h1>Gestione Aziendale</h1>
+
+        <div class="collapsible-container">
+            <div class="collapsible-title" id="toggleGestioneDipendentiBtn">
+                Gestione dipendenti
+                <span class="collapsible-icon">></span>
+            </div>
+            <div id="gestioneDipendentiContent" class="collapsible-content">
+                <h2>Registra un nuovo dipendente</h2>
+                <div class="input-group">
+                    <label for="employeeGrade">Grado:</label>
+                    <select id="employeeGrade"></select>
+                </div>
+                <div class="input-group">
+                    <label for="employeeName">Nome completo:</label>
+                    <input type="text" id="employeeName" placeholder="Inserisci il nome completo">
+                </div>
+                <div class="input-group">
+                    <label for="employeeDob">Data di nascita (GG/MM/AAAA):</label>
+                    <input type="text" id="employeeDob" placeholder="GG/MM/AAAA" maxlength="10">
+                </div>
+                <div class="input-group">
+                    <label for="employeeAge">Età:</label>
+                    <input type="text" id="employeeAge" placeholder="Calcolata automaticamente" readonly>
+                </div>
+                <div class="input-group">
+                    <label for="employeeHireDate">Assunto il (GG/MM/AAAA):</label>
+                    <input type="text" id="employeeHireDate" placeholder="GG/MM/AAAA" maxlength="10">
+                </div>
+
+                <div class="input-group">
+                    <label for="patenteFile">Patente:</label>
+                    <input type="file" id="patenteFile" accept="image/*">
+                    <img id="patentePreview" class="image-preview">
+                </div>
+
+                <div class="input-group">
+                    <label for="idFile">Documento D'Identità:</label>
+                    <input type="file" id="idFile" accept="image/*">
+                    <img id="idPreview" class="image-preview">
+                </div>
+
+                <div class="input-group">
+                    <label for="lavorativoFile">Documento Lavorativo:</label>
+                    <input type="file" id="lavorativoFile" accept="image/*">
+                    <img id="lavorativoPreview" class="image-preview">
+                </div>
+
+                <button id="hireEmployeeBtn">Assumi dipendente</button>
+            </div>
+        </div>
+
+        <div class="collapsible-container">
+            <div class="collapsible-title" id="toggleRegistroDipendentiBtn">
+                Registro Dipendenti
+                <span class="collapsible-icon">></span>
+            </div>
+            <div id="registroDipendentiContent" class="collapsible-content">
+                <div id="activeEmployeeList" class="employee-list">
+                    <p class="centered-text">Nessun dipendente registrato.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="collapsible-container">
+            <div class="collapsible-title" id="toggleRegistroLicenziatiBtn">
+                Registro Dipendenti Licenziati
+                <span class="collapsible-icon">></span>
+            </div>
+            <div id="registroLicenziatiContent" class="collapsible-content">
+                <div id="firedEmployeeList" class="employee-list">
+                    <p class="centered-text">Nessun dipendente licenziato.</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="collapsible-container">
+            <div class="collapsible-title" id="toggleCalcolatoreStipendiBtn">
+                Calcolatore degli stipendi
+                <span class="collapsible-icon">></span>
+            </div>
+            <div id="calcolatoreStipendiContent" class="collapsible-content">
+                <div class="collapsible-container">
+                    <div class="collapsible-title" id="toggleGradoStipendiBtn">
+                        Definisci stipendi per grado
+                        <span class="collapsible-icon">></span>
+                    </div>
+                    <div id="gradoStipendiContent" class="collapsible-content">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Grado</th>
+                                    <th>Stipendio ogni mezz'ora ($)</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradeRatesTableBody">
+                                </tbody>
+                        </table>
+                        <button id="saveRatesBtn">Salva stipendi per grado</button>
+                    </div>
+                </div>
+
+                <h2>Calcolo stipendi per dipendente</h2>
+                <table id="stipendiTable">
+                    <thead>
+                        <tr>
+                            <th>Dipendente</th>
+                            <th>Grado</th>
+                            <th>Ore Svolte</th>
+                            <th>Stipendio Totale</th>
+                        </tr>
+                    </thead>
+                    <tbody id="stipendiTableBody">
+                        <tr id="noEmployeesRow"><td colspan="4" class="centered-text">Nessun dipendente registrato.</td></tr>
+                    </tbody>
+                </table>
+                <button id="calcolaStipendiBtn">Calcola stipendi</button>
+                <div id="pdf-summary" style="display: none;">
+                     <p><strong>Totale ore lavorate (h):</strong> <span id="total-hours-span">0</span></p>
+                    <p><strong>Note:</strong> Le mezz'ore (30min) sono contate come 0,5</p>
+                    <div style="margin-top: 10px; width: 50%;">
+                        <div class="pdf-header">Classifica Settimanale</div>
+                        <table style="width: 100%;">
+                            <thead>
+                                <tr>
+                                    <th>Posizione</th>
+                                    <th>Nome</th>
+                                </tr>
+                            </thead>
+                            <tbody id="top-workers-table-body">
+                            </tbody>
+                        </table>
+                        <p style="margin-top: 10px;"><strong>Totale Membri:</strong> <span id="total-members-span">0</span></p>
+                    </div>
+                </div>
+                <button id="downloadTableBtn" style="display: none;">Scarica Tabella</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="imageModal" class="modal">
+    <span class="modal-close">&times;</span>
+    <img class="modal-content" id="modalImage">
+</div>
+
+<script src="script.js"></script>
+
+</body>
+</html>

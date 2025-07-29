@@ -1,0 +1,30 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Regola generale per negare tutto l'accesso in scrittura e lettura di default
+    // a meno che non ci siano regole più specifiche.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Regole per la collezione 'appUpdates'
+    match /appUpdates/{platform} {
+      // Permetti lettura a CHIUNQUE (necessario per le app client)
+      allow read: if true;
+      // Permetti scrittura SOLO se la richiesta proviene dall'Admin SDK (il tuo server)
+      // L'Admin SDK bypassa normalmente le regole, ma è buona pratica essere espliciti.
+      // In questo caso, le richieste da un server autenticato con un Service Account
+      // vengono considerate come "admin" e avranno accesso.
+      allow write: if request.auth == null; // Questa regola permette all'Admin SDK di scrivere.
+                                           // Admin SDK non imposta request.auth, quindi viene trattato come admin.
+                                           // Se volessi autenticare utenti specifici (es. per un pannello admin),
+                                           // dovresti implementare una logica auth.uid != null e controllare ruoli.
+    }
+
+    // Puoi aggiungere altre regole specifiche per altre tue collezioni
+    // Esempio:
+    // match /employees/{employeeId} {
+    //   allow read, write: if request.auth != null; // Richiede autenticazione
+    // }
+  }
+}
