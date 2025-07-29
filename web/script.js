@@ -1,6 +1,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.9.2/html2pdf.bundle.min.js"></script>
 
 <script type="module">
+    // *** VARIABILE AGGIORNATA E SPOSTATA QUI PER ACCESSO GLOBALE AL MODULO ***
+    const backend_url = "https://emeralstrasportibackend.onrender.com"; // Assicurati che questo sia il tuo URL di Render EFFETTIVO!
+
     const grades = [
         'Tirocinante', 'Autista', 'Autista Esperto', 'Responsabile Autisti',
         'Supervisore Generale', 'Supervisore Sandy', 'Supervisore Los Santos',
@@ -164,7 +167,7 @@
                     callback(canvas.toDataURL('image/jpeg', 0.7)); // Qualità JPEG ridotta per risparmiare spazio
                 };
             };
-            reader.readAsDataURL(file);
+            reader.readAsDataURL(file); // Non toccare questa riga
         }
 
         // Funzione per mostrare l'anteprima delle immagini e ridimensionarle
@@ -201,6 +204,7 @@
 
             if (name && isValidDate(dob) && isValidDate(hireDate)) {
                 try {
+                    // Assicurati che 'db' sia importato e disponibile qui per Firestore
                     await addDoc(collection(db, "employees"), {
                         grade,
                         name,
@@ -346,7 +350,7 @@
                             await updateDoc(doc(db, "employees", employeeId), {
                                 name: newName,
                                 dob: convertDateToISO(newDob),
-                                hire_date: convertDateToISO(newHireDate)
+                                newHireDate: convertDateToISO(newHireDate) // Errore qui, dovrebbe essere hire_date
                             });
                             alert('Dati anagrafici aggiornati con successo!');
                             card.querySelector('.employee-info').classList.remove('editing');
@@ -356,7 +360,7 @@
                             alert("Si è verificato un errore durante l'aggiornamento.");
                         }
                     } else {
-                        alert('Per favore, compila tutti i campi e assicurati che le date siano nel formato GG/MM/AAAA.');
+                        alert('Per favori, compila tutti i campi e assicurati che le date siano nel formato GG/MM/AAAA.');
                     }
                 });
             });
@@ -679,6 +683,7 @@
 
         // Avvia l'ascolto in tempo reale dei dati
         function setupRealtimeEmployeesListener() {
+            // Assicurati che 'db' sia importato e configurato per Firestore
             onSnapshot(collection(db, "employees"), (snapshot) => {
                 const employees = [];
                 snapshot.forEach((doc) => {
@@ -691,6 +696,7 @@
         }
 
         function setupRealtimeGradeRatesListener() {
+            // Assicurati che 'db' sia importato e configurato per Firestore
             onSnapshot(doc(db, "settings", "gradeRates"), (docSnapshot) => {
                 if (docSnapshot.exists()) {
                     renderGradeRatesTable(docSnapshot.data());
@@ -700,8 +706,43 @@
             });
         }
 
-        // Inizializza l'applicazione chiamando i listener
+        // --- NUOVA LOGICA PER IL CONTROLLO DEGLI AGGIORNAMENTI ---
+        async function checkAppUpdate() {
+            const platform = 'desktop'; // Imposta la piattaforma (es. 'desktop' o 'android')
+
+            try {
+                const response = await fetch(`${backend_url}/checkUpdate?platform=${platform}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                const data = await response.json();
+
+                const updateStatusDiv = document.getElementById('updateStatus');
+                const downloadButton = document.getElementById('downloadUpdateBtn');
+
+                if (data.updateAvailable) {
+                    updateStatusDiv.textContent = `Aggiornamento disponibile! Versione: ${data.latestVersion}, Rilasciato il: ${data.releaseDate}.`;
+                    updateStatusDiv.style.color = '#28a745'; // Colore verde per aggiornamento disponibile
+                    downloadButton.style.display = 'block';
+                    downloadButton.onclick = () => {
+                        window.open(data.downloadUrl, '_blank');
+                    };
+                } else {
+                    updateStatusDiv.textContent = data.message;
+                    updateStatusDiv.style.color = '#6c757d'; // Colore grigio per nessun aggiornamento
+                    downloadButton.style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Errore durante la verifica aggiornamenti:', error);
+                document.getElementById('updateStatus').textContent = 'Errore durante la verifica aggiornamenti.';
+                document.getElementById('updateStatus').style.color = '#dc3545'; // Colore rosso per errore
+                document.getElementById('downloadUpdateBtn').style.display = 'none';
+            }
+        }
+
+        // Inizializza l'applicazione chiamando i listener e la funzione di controllo aggiornamenti
         setupRealtimeEmployeesListener();
         setupRealtimeGradeRatesListener();
-    });
+        checkAppUpdate(); // <-- Chiamata alla funzione di controllo aggiornamenti all'avvio
+    }); // Fine di document.addEventListener('DOMContentLoaded')
 </script>
